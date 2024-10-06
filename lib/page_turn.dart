@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
 
 import 'src/builders/index.dart';
 
 class PageTurn extends StatefulWidget {
   const PageTurn({
-    Key key,
+    required Key key,
     this.duration = const Duration(milliseconds: 450),
     this.cutoff = 0.6,
     this.backgroundColor = const Color(0xFFFFFFCC),
-    @required this.children,
+    required this.children,
     this.initialIndex = 0,
-    this.lastPage,
+    required this.lastPage,
     this.showDragCutoff = false,
   }) : super(key: key);
 
@@ -33,7 +31,7 @@ class PageTurnState extends State<PageTurn> with TickerProviderStateMixin {
   List<Widget> pages = [];
 
   List<AnimationController> _controllers = [];
-  bool _isForward;
+  bool _isForward = false;
 
   @override
   void didUpdateWidget(PageTurn oldWidget) {
@@ -84,18 +82,16 @@ class PageTurnState extends State<PageTurn> with TickerProviderStateMixin {
     pageNumber = widget.initialIndex;
   }
 
-  bool get _isLastPage => pages != null && (pages.length - 1) == pageNumber;
+  bool get _isLastPage => (pages.length - 1) == pageNumber;
 
   bool get _isFirstPage => pageNumber == 0;
 
   void _turnPage(DragUpdateDetails details, BoxConstraints dimens) {
     final _ratio = details.delta.dx / dimens.maxWidth;
-    if (_isForward == null) {
-      if (details.delta.dx > 0) {
-        _isForward = false;
-      } else {
-        _isForward = true;
-      }
+    if (details.delta.dx > 0) {
+      _isForward = false;
+    } else {
+      _isForward = true;
     }
     if (_isForward || pageNumber == 0) {
       _controllers[pageNumber].value += _ratio;
@@ -105,32 +101,29 @@ class PageTurnState extends State<PageTurn> with TickerProviderStateMixin {
   }
 
   Future _onDragFinish() async {
-    if (_isForward != null) {
-      if (_isForward) {
-        if (!_isLastPage &&
-            _controllers[pageNumber].value <= (widget.cutoff + 0.15)) {
-          await nextPage();
-        } else {
-          await _controllers[pageNumber].forward();
-        }
+    if (_isForward) {
+      if (!_isLastPage &&
+          _controllers[pageNumber].value <= (widget.cutoff + 0.15)) {
+        await nextPage();
       } else {
-        if (pageNumber > 0) {
-          print(
-              'Val:${_controllers[pageNumber - 1].value} -> ${widget.cutoff + 0.28}');
-        }
-        if (!_isFirstPage &&
-            _controllers[pageNumber - 1].value >= widget.cutoff) {
-          await previousPage();
+        await _controllers[pageNumber].forward();
+      }
+    } else {
+      if (pageNumber > 0) {
+        print(
+            'Val:${_controllers[pageNumber - 1].value} -> ${widget.cutoff + 0.28}');
+      }
+      if (!_isFirstPage &&
+          _controllers[pageNumber - 1].value >= widget.cutoff) {
+        await previousPage();
+      } else {
+        if (_isFirstPage) {
+          await _controllers[pageNumber].forward();
         } else {
-          if (_isFirstPage) {
-            await _controllers[pageNumber].forward();
-          } else {
-            await _controllers[pageNumber - 1].reverse();
-          }
+          await _controllers[pageNumber - 1].reverse();
         }
       }
     }
-    _isForward = null;
   }
 
   Future nextPage() async {
@@ -176,16 +169,14 @@ class PageTurnState extends State<PageTurn> with TickerProviderStateMixin {
       child: LayoutBuilder(
         builder: (context, dimens) => GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onHorizontalDragCancel: () => _isForward = null,
+          onHorizontalDragCancel: () => _isForward = false,
           onHorizontalDragUpdate: (details) => _turnPage(details, dimens),
           onHorizontalDragEnd: (details) => _onDragFinish(),
           child: Stack(
             fit: StackFit.expand,
             children: <Widget>[
-              if (widget?.lastPage != null) ...[
-                widget.lastPage,
-              ],
-              if (pages != null)
+              widget.lastPage,
+              if (pages.isNotEmpty)
                 ...pages
               else ...[
                 Container(child: CircularProgressIndicator()),
